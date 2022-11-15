@@ -115,7 +115,9 @@ function App() {
     }
   });
 
-  $("nav").addEventListener("click", (e) => {});
+  $("nav").addEventListener("click", (e) => {
+    console.log("카테고리");
+  });
 }
 
 const app = new App();
