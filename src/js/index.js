@@ -58,6 +58,7 @@ function App() {
   const editMenu = (target) => {
     const originMenuName = target.previousElementSibling;
     const id = target.closest("li.menu-list-item").dataset.menuId;
+
     const fixedString = prompt(
       "수정할 문구를 입력하세요",
       originMenuName.textContent
@@ -113,6 +114,8 @@ function App() {
       removeMenu(target);
     }
   });
+
+  $("nav").addEventListener("click", (e) => {});
 }
 
 const app = new App();
