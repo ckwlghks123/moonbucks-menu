@@ -115,9 +115,7 @@ function App() {
     }
   });
 
-  $("nav").addEventListener("click", (e) => {
-    console.log(e);
-  });
+  $("nav").addEventListener("click", (e) => {});
 }
 
 const app = new App();
