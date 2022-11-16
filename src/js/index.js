@@ -10,16 +10,23 @@ const store = {
 };
 
 function App() {
-  this.menu = [];
+  this.menu = {
+    espresso: [],
+    frappuccino: [],
+    blended: [],
+    teavana: [],
+    desert: [],
+  };
+  this.currentCategory = "espresso";
   this.init = () => {
-    if (store.getStorage("menu").length > 0) {
+    if (store.getStorage("menu") && store.getStorage("menu").length > 0) {
       this.menu = store.getStorage("menu");
       this.render();
     }
   };
 
   this.render = () => {
-    const template = this.menu
+    const template = this.menu[this.currentCategory]
       .map(({ id, name }) => {
         return `
 	<li class="menu-list-item d-flex items-center py-2" data-menu-id="${id}">
@@ -41,17 +48,18 @@ function App() {
       })
       .join("");
 
-    $("#espresso-menu-list").innerHTML = template;
+    $("#menu-list").innerHTML = template;
 
     menuCounter();
   };
 
-  const $menuName = $("#espresso-menu-name");
-  const $menuForm = $("#espresso-menu-form");
-  const $menuList = $("#espresso-menu-list");
+  const $menuName = $("#menu-name");
+  const $menuForm = $("#menu-form");
+  const $menuList = $("#menu-list");
+  const $menuHead = $("h2.mt-1");
 
   const menuCounter = () => {
-    const menuCount = $("#espresso-menu-list").querySelectorAll("li").length;
+    const menuCount = $("#menu-list").querySelectorAll("li").length;
     $(".menu-count").textContent = `총 ${menuCount}개`;
   };
 
@@ -64,11 +72,11 @@ function App() {
       originMenuName.textContent
     );
 
-    const newState = this.menu.map((e) =>
+    const newState = this.menu[this.currentCategory].map((e) =>
       e.id === id ? { ...e, name: fixedString } : e
     );
 
-    this.menu = newState;
+    this.menu[this.currentCategory] = newState;
     store.setStorage("menu", this.menu);
 
     fixedString.length > 0 && (originMenuName.textContent = fixedString);
@@ -76,9 +84,9 @@ function App() {
 
   const removeMenu = (target) => {
     const id = target.closest("li.menu-list-item").dataset.menuId;
-    const newState = this.menu.filter((e) => e.id !== id);
+    const newState = this.menu[this.currentCategory].filter((e) => e.id !== id);
 
-    this.menu = newState;
+    this.menu[this.currentCategory] = newState;
     store.setStorage("menu", newState);
     target.closest("li.d-flex").remove(target.parentNode);
 
@@ -91,10 +99,10 @@ function App() {
       return;
     }
 
-    const menuName = $("#espresso-menu-name").value;
+    const menuName = $("#menu-name").value;
     const id = new Date().getTime() + "";
 
-    this.menu.push({ id, name: menuName });
+    this.menu[this.currentCategory].push({ id, name: menuName });
     store.setStorage("menu", this.menu);
 
     this.render();
@@ -115,8 +123,16 @@ function App() {
     }
   });
 
-  $("nav").addEventListener("click", (e) => {
-    console.log("카테고리");
+  $("nav").addEventListener("click", ({ target }) => {
+    if (target.dataset.categoryName) {
+      this.currentCategory = target.dataset.categoryName;
+      $menuHead.innerText = `${target.innerText} 메뉴 관리`;
+      $menuName.setAttribute(
+        "placeholder",
+        `${target.innerText.slice(2)} 메뉴 이름`
+      );
+      this.render();
+    }
   });
 }
 
