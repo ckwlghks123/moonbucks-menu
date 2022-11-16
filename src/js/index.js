@@ -19,18 +19,31 @@ function App() {
   };
   this.currentCategory = "espresso";
   this.init = () => {
-    if (store.getStorage("menu") && store.getStorage("menu").length > 0) {
+    if (store.getStorage("menu")) {
       this.menu = store.getStorage("menu");
       this.render();
+      initEventListeners();
+    } else {
+      store.setStorage("menu", this.menu);
+      this.render();
+      initEventListeners();
     }
   };
 
   this.render = () => {
     const template = this.menu[this.currentCategory]
-      .map(({ id, name }) => {
+      .map(({ id, name, soldOut }) => {
         return `
-	<li class="menu-list-item d-flex items-center py-2" data-menu-id="${id}">
+	<li class="${
+    soldOut && "sold-out"
+  } menu-list-item d-flex items-center py-2" data-menu-id="${id}">
 		<span class="w-100 pl-2 menu-name">${name}</span>
+		<button
+			type="button"
+			class="bg-gray-50 text-gray-500 text-sm mr-1 menu-sold-out-button"
+		>
+			품절
+		</button>
 		<button
 			type="button"
 			class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button"
@@ -59,12 +72,14 @@ function App() {
   const $menuHead = $("h2.mt-1");
 
   const menuCounter = () => {
-    const menuCount = $("#menu-list").querySelectorAll("li").length;
+    const menuCount = this.menu[this.currentCategory].length;
     $(".menu-count").textContent = `총 ${menuCount}개`;
   };
 
   const editMenu = (target) => {
-    const originMenuName = target.previousElementSibling;
+    const originMenuName = target
+      .closest("li.menu-list-item")
+      .querySelector("span.menu-name");
     const id = target.closest("li.menu-list-item").dataset.menuId;
 
     const fixedString = prompt(
@@ -72,14 +87,17 @@ function App() {
       originMenuName.textContent
     );
 
+    const name =
+      fixedString !== null ? fixedString : originMenuName.textContent;
+
     const newState = this.menu[this.currentCategory].map((e) =>
-      e.id === id ? { ...e, name: fixedString } : e
+      e.id === id ? { ...e, name } : e
     );
 
     this.menu[this.currentCategory] = newState;
     store.setStorage("menu", this.menu);
 
-    fixedString.length > 0 && (originMenuName.textContent = fixedString);
+    fixedString && fixedString.length > 0 && this.render();
   };
 
   const removeMenu = (target) => {
@@ -90,7 +108,7 @@ function App() {
     store.setStorage("menu", newState);
     target.closest("li.d-flex").remove(target.parentNode);
 
-    menuCounter();
+    this.render();
   };
 
   const addMenu = () => {
@@ -109,31 +127,48 @@ function App() {
     $menuName.value = "";
   };
 
-  $menuForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    addMenu();
-  });
+  const soldOutMenu = (target) => {
+    const id = target.closest("li.menu-list-item").dataset.menuId;
+    const $targetCategory = this.menu[this.currentCategory];
+    const $targetMenu = $targetCategory.find((e) => e.id === id);
+    $targetMenu.soldOut = !$targetMenu.soldOut;
 
-  $menuList.addEventListener("click", ({ target }) => {
-    if (target.classList.contains("menu-edit-button")) {
-      editMenu(target);
-    }
-    if (target.classList.contains("menu-remove-button")) {
-      removeMenu(target);
-    }
-  });
+    this.render();
+  };
 
-  $("nav").addEventListener("click", ({ target }) => {
-    if (target.dataset.categoryName) {
-      this.currentCategory = target.dataset.categoryName;
-      $menuHead.innerText = `${target.innerText} 메뉴 관리`;
-      $menuName.setAttribute(
-        "placeholder",
-        `${target.innerText.slice(2)} 메뉴 이름`
-      );
-      this.render();
-    }
-  });
+  const initEventListeners = () => {
+    $menuForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      addMenu();
+    });
+
+    $menuList.addEventListener("click", ({ target }) => {
+      if (target.classList.contains("menu-edit-button")) {
+        editMenu(target);
+        return;
+      }
+      if (target.classList.contains("menu-remove-button")) {
+        removeMenu(target);
+        return;
+      }
+      if (target.classList.contains("menu-sold-out-button")) {
+        soldOutMenu(target);
+        return;
+      }
+    });
+
+    $("nav").addEventListener("click", ({ target }) => {
+      if (target.dataset.categoryName) {
+        this.currentCategory = target.dataset.categoryName;
+        $menuHead.innerText = `${target.innerText} 메뉴 관리`;
+        $menuName.setAttribute(
+          "placeholder",
+          `${target.innerText.slice(2)} 메뉴 이름`
+        );
+        this.render();
+      }
+    });
+  };
 }
 
 const app = new App();
