@@ -1,5 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 
+const BASE_URL = "http://localhost:3000/api";
+
 const store = {
   setStorage(name, data) {
     localStorage.setItem(name, JSON.stringify(data));
@@ -120,11 +122,20 @@ function App() {
     const menuName = $("#menu-name").value;
     const id = new Date().getTime() + "";
 
-    this.menu[this.currentCategory].push({ id, name: menuName });
-    store.setStorage("menu", this.menu);
+    fetch(`${BASE_URL}/category/${this.currentCategory}/menu`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: menuName }),
+    })
+      .then((res) => res.json())
+      .then(console.log);
+    // this.menu[this.currentCategory].push({ id, name: menuName });
+    // store.setStorage("menu", this.menu);
 
-    this.render();
-    $menuName.value = "";
+    // this.render();
+    // $menuName.value = "";
   };
 
   const soldOutMenu = (target) => {
