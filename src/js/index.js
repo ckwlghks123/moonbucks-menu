@@ -35,12 +35,13 @@ function App() {
     ).then((res) => res.json());
   };
 
-  this.render = () => {
+  this.render = async () => {
+    this.menu[this.currentCategory] = await this.getMenu();
     const template = this.menu[this.currentCategory]
-      .map(({ id, name, soldOut }) => {
+      .map(({ id, name, isSoldOut }) => {
         return `
 	<li class="${
-    soldOut && "sold-out"
+    isSoldOut && "sold-out"
   } menu-list-item d-flex items-center py-2" data-menu-id="${id}">
 		<span class="w-100 pl-2 menu-name">${name}</span>
 		<button
@@ -81,7 +82,7 @@ function App() {
     $(".menu-count").textContent = `총 ${menuCount}개`;
   };
 
-  const editMenu = (target) => {
+  const editMenu = async (target) => {
     const originMenuName = target
       .closest("li.menu-list-item")
       .querySelector("span.menu-name");
@@ -92,17 +93,18 @@ function App() {
       originMenuName.textContent
     );
 
-    const name =
-      fixedString !== null ? fixedString : originMenuName.textContent;
+    if (!(fixedString && fixedString.length > 0))
+      return alert("문구를 입력해주세요");
 
-    const newState = this.menu[this.currentCategory].map((e) =>
-      e.id === id ? { ...e, name } : e
-    );
+    await fetch(`${BASE_URL}/category/${this.currentCategory}/menu/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: fixedString }),
+    });
 
-    this.menu[this.currentCategory] = newState;
-    store.setStorage("menu", this.menu);
-
-    fixedString && fixedString.length > 0 && this.render();
+    this.render();
   };
 
   const removeMenu = async (target) => {
@@ -111,7 +113,6 @@ function App() {
       method: "DELETE",
     });
 
-    this.menu[this.currentCategory] = await this.getMenu();
     this.render();
   };
 
@@ -123,6 +124,14 @@ function App() {
 
     const menuName = $("#menu-name").value;
     const id = new Date().getTime() + "";
+    const isExist = this.menu[this.currentCategory].find(
+      (e) => e.name === menuName
+    );
+
+    if (isExist) {
+      $menuName.value = "";
+      return alert("이미 존재하는 메뉴입니다.");
+    }
 
     await fetch(`${BASE_URL}/category/${this.currentCategory}/menu`, {
       method: "POST",
@@ -131,17 +140,21 @@ function App() {
       },
       body: JSON.stringify({ name: menuName }),
     });
-
-    this.menu[this.currentCategory] = await this.getMenu();
     this.render();
     $menuName.value = "";
   };
 
-  const soldOutMenu = (target) => {
+  const soldOutMenu = async (target) => {
     const id = target.closest("li.menu-list-item").dataset.menuId;
-    const $targetCategory = this.menu[this.currentCategory];
-    const $targetMenu = $targetCategory.find((e) => e.id === id);
-    $targetMenu.soldOut = !$targetMenu.soldOut;
+    const $targetMenu = this.menu[this.currentCategory].find(
+      (e) => e.id === id
+    );
+    await fetch(
+      `${BASE_URL}/category/${this.currentCategory}/menu/${id}/soldout`,
+      {
+        method: "PUT",
+      }
+    );
 
     this.render();
   };
@@ -167,7 +180,7 @@ function App() {
       }
     });
 
-    $("nav").addEventListener("click", async ({ target }) => {
+    $("nav").addEventListener("click", ({ target }) => {
       if (target.dataset.categoryName) {
         this.currentCategory = target.dataset.categoryName;
         $menuHead.innerText = `${target.innerText} 메뉴 관리`;
@@ -175,7 +188,7 @@ function App() {
           "placeholder",
           `${target.innerText.slice(2)} 메뉴 이름`
         );
-        this.menu[this.currentCategory] = await this.getMenu();
+
         this.render();
       }
     });
